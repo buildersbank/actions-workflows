@@ -16,7 +16,7 @@ jobs:
     name: Sonar Analyze
     runs-on: ['sonar-codewall-gke']
     steps:
-      - uses: platformbuilders/sonar-action@v1.0.0
+      - uses: buildersbank/sonar-action@v1.0.0
         with:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
