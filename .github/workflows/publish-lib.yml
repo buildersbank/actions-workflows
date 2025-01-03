@@ -59,7 +59,7 @@ jobs:
         env:
           PACKAGES_NPMRC: ${{ secrets.PACKAGES_NPMRC }}
       - name: Install and Build
-        run: yarn install && yarn build
+        run: yarn install --update-checksums && yarn build
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_PACKAGES_TOKEN }}
       - name: Clean .npmrc
