@@ -3,10 +3,6 @@ name: SonarQube Analysis
 on:
   workflow_call:
     inputs:
-      SONAR_PROJECT_KEY:
-        description: 'Chave única do projeto no SonarQube'
-        required: true
-        type: string
       SONAR_SOURCE_PATH:
         description: 'Caminho do código-fonte para análise'
         required: false
@@ -26,15 +22,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
-          fetch-depth: 0  
-
-      - name: SonarQube Scan
+          fetch-depth: 0 
+      - name: SonarQube Scan 
         uses: sonarsource/sonarqube-scan-action@master
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-          SONAR_PROJECT_KEY: ${{ inputs.SONAR_PROJECT_KEY }}
-          SONAR_SOURCES: ${{ inputs.SONAR_SOURCE_PATH }}
+        with:
+          projectBaseDir: ${{ inputs.SONAR_SOURCE_PATH }}
