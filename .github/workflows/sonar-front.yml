@@ -1,0 +1,52 @@
+name: SonarQube Analysis
+
+on:
+  workflow_call:
+    inputs:
+      SONAR_PROJECT_KEY:
+        description: 'key do projeto no SonarQube'
+        required: true
+      SONAR_SOURCE_PATH:
+        description: 'path do código'
+        required: true
+      NODE_VERSION:
+        description: 'versão do Node.js'
+        required: true
+    secrets:
+      SONAR_TOKEN:
+        description: 'Token de autenticação para o SonarQube'
+        required: true
+      SONAR_HOST_URL:
+        description: 'URL do servidor SonarQube'
+        required: true
+
+jobs:
+  sonar_analysis:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ inputs.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Install SonarScanner
+        run: npm install -g sonar-scanner
+
+      - name: Run SonarQube Analysis
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        run: |
+          sonar-scanner \
+            -Dsonar.projectKey=${{ inputs.SONAR_PROJECT_KEY }} \
+            -Dsonar.sources=${{ inputs.SONAR_SOURCE_PATH }} \
+            -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }} \
+            -Dsonar.login=${{ secrets.SONAR_TOKEN }}
