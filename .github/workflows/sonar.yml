@@ -1,22 +1,78 @@
-name: Sonar
+name: Build and tests
 
 on:
   workflow_call:
     secrets:
-      SONAR_TOKEN:
-        description: 'Token of the Platform Builders server'
+      actor:
         required: true
-      SONAR_HOST_URL:
-        description: 'Url of the Platform Builders server'
+      actor-access-token:
         required: true
+      sonar-access-token:
+        required: false
+
+env:
+  maven-repo: |
+    [
+      {
+        "id": "github",
+        "url": "https://maven.pkg.github.com/buildersbank/*",
+        "snapshots": {
+          "enabled": "true"
+        }
+      }
+    ]
+  maven-server: |
+    [
+      {
+        "id": "github",
+        "username": "${{ secrets.actor }}",
+        "password": "${{ secrets.actor-access-token }}"
+      }
+    ]
 
 jobs:
   sonar:
-    if: startsWith(github.head_ref, 'dependabot/') == false # ignore the pull request which comes from user dependabot.
-    name: Sonar Analyze
-    runs-on: ['sonar-codewall-gke']
+    name: SonarQube
+    runs-on: ubuntu-latest
+
     steps:
-      - uses: buildersbank/sonar-action@v1.0.0
+      - name: "Checkout"
+        uses: actions/checkout@v2
+
+      - name: Set up JDK
+        uses: actions/setup-java@v1
         with:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          java-version: ${{ inputs.java-version }}
+
+      - name: "Create settings.xml"
+        uses: whelk-io/maven-settings-xml-action@v16
+        with:
+          repositories: ${{ env.maven-repo }}
+          servers: ${{ env.maven-server }}
+
+      - name: Cache SonarQube packages
+        uses: actions/cache@v1
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: ${{ runner.os }}-sonar
+
+      - name: Cache Maven packages
+        uses: actions/cache@v1
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+
+      - name: "Create settings.xml"
+        uses: whelk-io/maven-settings-xml-action@v16
+        with:
+          repositories: ${{ env.maven-repo }}
+          servers: ${{ env.maven-server }}
+
+      - name: Build and analyze
+        env:
+          GITHUB_TOKEN: ${{ secrets.actor-access-token }}
+          SONAR_TOKEN: ${{ secrets.sonar-access-token }}
+          SONAR_HOST_URL: https://sonarqube.buildersbank.io/
+        run: mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar
