@@ -8,6 +8,11 @@ on:
         required: false
         default: '.'
         type: string
+      SONAR_PROJECT_KEY:
+        description: 'Nome do projeto no sonar'
+        required: false
+        default: '.'
+        type: string
     secrets:
       SONAR_TOKEN:
         description: 'Token de autenticação para o SonarQube'
@@ -32,3 +37,6 @@ jobs:
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         with:
           projectBaseDir: ${{ inputs.SONAR_SOURCE_PATH }}
+          args: >
+            -Dsonar.projectKey=${{ inputs.SONAR_PROJECT_KEY }}
+          
