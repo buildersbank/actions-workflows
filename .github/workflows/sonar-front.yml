@@ -6,10 +6,12 @@ on:
       SONAR_PROJECT_KEY:
         description: 'Chave única do projeto no SonarQube'
         required: true
+        type: string
       SONAR_SOURCE_PATH:
         description: 'Caminho do código-fonte para análise'
         required: false
         default: '.'
+        type: string
     secrets:
       SONAR_TOKEN:
         description: 'Token de autenticação para o SonarQube'
