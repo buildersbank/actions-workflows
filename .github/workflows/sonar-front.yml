@@ -39,6 +39,7 @@ jobs:
           projectBaseDir: ${{ inputs.SONAR_SOURCE_PATH }}
           args: >
             -Dsonar.projectKey=${{ inputs.SONAR_PROJECT_KEY }}
+            -Dsonar.exclusions=**/*.java
   
   check_java:
     name: Check for Java files
@@ -59,39 +60,46 @@ jobs:
 
 
   backend_scan:
-    name: SonarQube back scan
-    runs-on: ubuntu-latest
-    needs: check_java 
-    if: ${{ needs.check_java.outputs.has_java == 'true' }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+  name: Backend SonarQube Analysis
+  runs-on: ubuntu-latest
+  needs: check_java
+  if: ${{ needs.check_java.outputs.has_java == 'true' }}
+  steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
 
-      - name: Setup Java
-        uses: actions/setup-java@v3
-        with:
-          java-version: '11' 
-          distribution: 'temurin'
+    - name: Setup Java
+      uses: actions/setup-java@v3
+      with:
+        java-version: '11'
+        distribution: 'temurin'
 
-      - name: Build Java Project
-        run: |
-          if [ -f "build.gradle" ]; then
-            ./gradlew build
-          elif [ -f "pom.xml" ]; then
-            ./mvnw clean install
-          else
-            echo "Nenhum arquivo de build encontrado, pulando build."
-          fi
+    - name: Install Sonar Scanner
+      run: |
+        curl -sSLo sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
+        unzip sonar-scanner.zip -d $HOME
+        export PATH="$HOME/sonar-scanner-5.0.1.3006-linux/bin:$PATH"
 
-      - name: Backend SonarQube Scan
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-        run: |
-          sonar-scanner \
-            -Dsonar.projectKey=${{ inputs.SONAR_PROJECT_KEY }}-java \
-            -Dsonar.sources=${{ inputs.SONAR_SOURCE_PATH }} \
-            -Dsonar.language=java \
-            -Dsonar.java.binaries=build/classes/java
+    - name: Build Java Project
+      run: |
+        if [ -f "build.gradle" ]; then
+          ./gradlew build
+        elif [ -f "pom.xml" ]; then
+          ./mvnw clean install
+        else
+          echo "Nenhum arquivo de build encontrado, pulando build."
+        fi
+
+    - name: Backend SonarQube Scan
+      env:
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+      run: |
+        sonar-scanner \
+          -Dsonar.projectKey=${{ inputs.SONAR_PROJECT_KEY }}-java \
+          -Dsonar.sources=${{ inputs.SONAR_SOURCE_PATH }} \
+          -Dsonar.language=java \
+          -Dsonar.java.binaries=build/classes/java
+
