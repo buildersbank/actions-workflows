@@ -70,26 +70,45 @@ jobs:
         with:
           fetch-depth: 0
   
+
       - name: Setup Java
         uses: actions/setup-java@v3
         with:
-          java-version: '11' 
+          java-version: '11'
           distribution: 'temurin'
+  
+      - name: Detect Build Tool
+        id: detect_build
+        run: |
+          if [ -f "gradlew" ]; then
+            echo "build_dir=." >> $GITHUB_OUTPUT
+          elif [ -f "pom.xml" ]; then
+            echo "build_dir=." >> $GITHUB_OUTPUT
+          else
+            BUILD_DIR=$(find . -type f \( -name "gradlew" -o -name "pom.xml" \) | head -n 1 | xargs dirname)
+            if [ -z "$BUILD_DIR" ]; then
+              echo "Nenhum arquivo de build encontrado."
+              exit 1
+            fi
+            echo "build_dir=$BUILD_DIR" >> $GITHUB_OUTPUT
+          fi
   
       - name: Build Java Project
         run: |
-          if [ -f "build.gradle" ]; then
-            ./gradlew build
+          cd ${{ steps.detect_build.outputs.build_dir }}
+          if [ -f "gradlew" ]; then
+            ./gradlew clean build
           elif [ -f "pom.xml" ]; then
             ./mvnw clean install
           else
-            echo "Nenhum arquivo de build encontrado, pulando build."
+            echo "Nenhum arquivo de build válido encontrado no diretório detectado."
+            exit 1
           fi
   
       - name: Detect Java Binaries
         id: detect_binaries
         run: |
-          BINARIES=$(find . -type d -path "*/classes" -o -path "*/build/classes/*" -o -path "*/target/classes")
+          BINARIES=$(find ${{ steps.detect_build.outputs.build_dir }} -type d -path "*/classes" -o -path "*/build/classes/*" -o -path "*/target/classes")
           if [ -z "$BINARIES" ]; then
             echo "Nenhum diretório de binários encontrado."
             exit 1
@@ -102,7 +121,8 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         with:
-          projectBaseDir: '.' # Diretório raiz
+          projectBaseDir: '.' 
           args: >
             -Dsonar.projectKey=${{ inputs.SONAR_PROJECT_KEY }}-java
             -Dsonar.java.binaries=${{ steps.detect_binaries.outputs.binaries }}
+  
