@@ -69,13 +69,13 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
+  
       - name: Setup Java
         uses: actions/setup-java@v3
         with:
-          java-version: '11'
+          java-version: '11' 
           distribution: 'temurin'
-
+  
       - name: Build Java Project
         run: |
           if [ -f "build.gradle" ]; then
@@ -85,14 +85,24 @@ jobs:
           else
             echo "Nenhum arquivo de build encontrado, pulando build."
           fi
-
+  
+      - name: Detect Java Binaries
+        id: detect_binaries
+        run: |
+          BINARIES=$(find . -type d -path "*/classes" -o -path "*/build/classes/*" -o -path "*/target/classes")
+          if [ -z "$BINARIES" ]; then
+            echo "Nenhum diretório de binários encontrado."
+            exit 1
+          fi
+          echo "binaries=$BINARIES" >> $GITHUB_OUTPUT
+  
       - name: SonarQube Scan
         uses: sonarsource/sonarqube-scan-action@master
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         with:
-          projectBaseDir: ${{ inputs.SONAR_SOURCE_PATH }}
+          projectBaseDir: '.' # Diretório raiz
           args: >
             -Dsonar.projectKey=${{ inputs.SONAR_PROJECT_KEY }}-java
-            -Dsonar.java.binaries=build/classes/java
+            -Dsonar.java.binaries=${{ steps.detect_binaries.outputs.binaries }}
