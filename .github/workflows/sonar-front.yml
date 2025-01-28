@@ -76,12 +76,6 @@ jobs:
           java-version: '11'
           distribution: 'temurin'
 
-      - name: Install Sonar Scanner
-        run: |
-          curl -sSLo sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
-          unzip sonar-scanner.zip -d $HOME
-          export PATH="$HOME/sonar-scanner-5.0.1.3006-linux/bin:$PATH"
-
       - name: Build Java Project
         run: |
           if [ -f "build.gradle" ]; then
@@ -92,14 +86,13 @@ jobs:
             echo "Nenhum arquivo de build encontrado, pulando build."
           fi
 
-      - name: Backend SonarQube Scan
+      - name: SonarQube Scan
+        uses: sonarsource/sonarqube-scan-action@master
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-        run: |
-          sonar-scanner \
-            -Dsonar.projectKey=${{ inputs.SONAR_PROJECT_KEY }}-java \
-            -Dsonar.sources=${{ inputs.SONAR_SOURCE_PATH }} \
-            -Dsonar.language=java \
+        with:
+          projectBaseDir: ${{ inputs.SONAR_SOURCE_PATH }}
+          args: >
+            -Dsonar.projectKey=${{ inputs.SONAR_PROJECT_KEY }}-java
             -Dsonar.java.binaries=build/classes/java
-
