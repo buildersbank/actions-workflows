@@ -22,8 +22,8 @@ on:
         required: true
 
 jobs:
-  build:
-    name: SonarQube Analysis
+  front_scan:
+    name: SonarQube Front Scan
     runs-on: ubuntu-latest
 
     steps:
@@ -39,4 +39,49 @@ jobs:
           projectBaseDir: ${{ inputs.SONAR_SOURCE_PATH }}
           args: >
             -Dsonar.projectKey=${{ inputs.SONAR_PROJECT_KEY }}
+  
+  backend_scan:
+    name: SonarQube Back Scan
+    runs-on: ubuntu-latest
+    if: ${{ steps.check_java.outputs.has_java == 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for Java files
+        id: check_java
+        run: |
+          if find . -name "*.java" | grep -q .; then
+            echo "has_java=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_java=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          java-version: '11' 
+          distribution: 'temurin'
+
+      - name: Build Java Project
+        run: |
+          if [ -f "build.gradle" ]; then
+            ./gradlew build
+          elif [ -f "pom.xml" ]; then
+            ./mvnw clean install
+          else
+            echo "Nenhum arquivo de build encontrado, pulando build."
+          fi
+
+      - name: Backend SonarQube Scan
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        run: |
+          sonar-scanner \
+            -Dsonar.projectKey=${{ inputs.SONAR_PROJECT_KEY }}-java \
+            -Dsonar.sources=${{ inputs.SONAR_SOURCE_PATH }} \
+            -Dsonar.language=java \
+            -Dsonar.java.binaries=build/classes/java
           
