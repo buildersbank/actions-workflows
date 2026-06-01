@@ -1,0 +1,8 @@
+name: testing-rules
+rules:
+  - id: test-coverage
+    description: Write tests using the detected test framework for all public functions and classes.
+  - id: test-naming
+    description: Follow the detected test framework naming conventions; test names should describe the expected behaviour.
+  - id: no-test-side-effects
+    description: Tests must not share mutable state; reset or mock external dependencies.

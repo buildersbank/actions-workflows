@@ -1,0 +1,6 @@
+name: security-rules
+rules:
+  - id: no-hardcoded-secrets
+    description: Never hardcode API keys, passwords, or tokens in source code.
+  - id: input-validation
+    description: Validate and sanitize all external input before processing or persisting.
